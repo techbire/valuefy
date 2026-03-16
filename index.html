@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wealth Builder 2025 — Portfolio Rebalancer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d0d0d;--paper:#f5f0e8;--cream:#ede8dc;--gold:#c9a84c;--gold-light:#e8d5a3;--forest:#2d5016;--forest-light:#4a7a28;--rose:#8b3a3a;--rose-light:#c05a5a;--slate:#3a4a5a;--muted:#7a7060;--border:#c8bfa8;--buy-bg:#e8f0e0;--sell-bg:#f5e8e8;--review-bg:#faf0d8;--shadow:0 2px 16px rgba(13,13,13,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+.header{background:var(--ink);color:var(--paper);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--gold)}
+.header-brand{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:700;letter-spacing:.02em}
+.header-brand span{color:var(--gold)}
+.header-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:#aaa;letter-spacing:.12em;text-transform:uppercase}
+.client-selector{display:flex;align-items:center;gap:10px}
+.client-select{font-family:'DM Mono',monospace;font-size:.72rem;padding:6px 10px;background:#1a1a1a;border:1px solid #444;color:var(--paper);border-radius:2px;cursor:pointer}
+.client-select:focus{outline:none;border-color:var(--gold)}
+.nav{background:var(--cream);border-bottom:1px solid var(--border);display:flex;gap:0;padding:0 40px;overflow-x:auto}
+.nav-tab{font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;padding:14px 20px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-tab:hover{color:var(--ink)}
+.nav-tab.active{color:var(--ink);border-bottom:2px solid var(--gold);font-weight:500}
+.main{max-width:1100px;margin:0 auto;padding:36px 40px}
+.client-banner{display:flex;align-items:center;gap:20px;background:var(--ink);color:var(--paper);border-radius:4px;padding:20px 28px;margin-bottom:32px}
+.client-avatar{width:48px;height:48px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:1.3rem;color:var(--ink);flex-shrink:0}
+.client-name{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700}
+.client-plan{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.client-meta{margin-left:auto;text-align:right}
+.client-value{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:300;color:var(--gold)}
+.client-value-label{font-family:'DM Mono',monospace;font-size:.65rem;color:#888;letter-spacing:.1em;text-transform:uppercase}
+.section-title{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.rebalance-table{width:100%;border-collapse:collapse;margin-bottom:28px;background:white;border-radius:4px;overflow:hidden;box-shadow:var(--shadow)}
+.rebalance-table th{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--cream);padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
+.rebalance-table td{padding:14px 16px;font-size:.88rem;border-bottom:1px solid #f0ebe0;vertical-align:middle}
+.rebalance-table tr:last-child td{border-bottom:none}
+.rebalance-table tr:hover td{background:#faf8f4}
+.fund-name{font-weight:500}
+.fund-class{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:2px}
+.pct{font-family:'DM Mono',monospace;font-size:.85rem}
+.drift{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:500}
+.drift.pos{color:var(--forest-light)}
+.drift.neg{color:var(--rose-light)}
+.action-badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:2px;font-weight:500}
+.badge-buy{background:var(--buy-bg);color:var(--forest);border:1px solid #b0cc90}
+.badge-sell{background:var(--sell-bg);color:var(--rose);border:1px solid #e0a8a8}
+.badge-review{background:var(--review-bg);color:#7a5a10;border:1px solid #d4b870}
+.badge-hold{background:#f0f0f0;color:#888;border:1px solid #ccc}
+.amount{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:500}
+.amount.buy{color:var(--forest)}
+.amount.sell{color:var(--rose)}
+.amount.review{color:#7a5a10}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.summary-card{background:white;border-radius:4px;padding:20px;box-shadow:var(--shadow);border-top:3px solid var(--border)}
+.summary-card.buy-card{border-top-color:var(--forest-light)}
+.summary-card.sell-card{border-top-color:var(--rose-light)}
+.summary-card.cash-card{border-top-color:var(--gold)}
+.summary-card.total-card{border-top-color:var(--slate)}
+.summary-label{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.summary-value{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:300}
+.summary-value.buy{color:var(--forest)}
+.summary-value.sell{color:var(--rose)}
+.summary-value.cash{color:var(--gold)}
+.btn-row{display:flex;gap:12px;justify-content:flex-end;margin-bottom:40px}
+.btn{font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;padding:12px 24px;border-radius:2px;border:none;cursor:pointer;transition:all .2s;font-weight:500}
+.btn-primary{background:var(--ink);color:var(--paper)}
+.btn-primary:hover{background:var(--slate)}
+.btn-secondary{background:white;color:var(--ink);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--cream)}
+.btn-gold{background:var(--gold);color:var(--ink)}
+.btn-gold:hover{background:#b8943e}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.holdings-table{width:100%;border-collapse:collapse;background:white;border-radius:4px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:20px}
+.holdings-table th{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--cream);padding:12px 20px;text-align:left;border-bottom:1px solid var(--border)}
+.holdings-table td{padding:16px 20px;font-size:.9rem;border-bottom:1px solid #f0ebe0}
+.holdings-table tr:last-child td{border-bottom:none}
+.holdings-table tr:hover td{background:#faf8f4}
+.total-row td{font-weight:600;background:var(--cream)!important;border-top:2px solid var(--border);font-family:'Fraunces',serif}
+.not-in-plan{display:inline-block;font-family:'DM Mono',monospace;font-size:.6rem;padding:2px 7px;background:var(--review-bg);border:1px solid #d4b870;color:#7a5a10;border-radius:2px;letter-spacing:.08em;text-transform:uppercase;margin-left:8px}
+.pct-bar{height:6px;background:#e8e0d0;border-radius:3px;overflow:hidden;margin-top:4px}
+.pct-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.alloc-visual{background:white;border-radius:4px;box-shadow:var(--shadow);padding:24px;margin-bottom:28px}
+.alloc-title{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.alloc-bar{height:24px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:8px}
+.alloc-seg{height:100%;transition:width .6s ease}
+.alloc-legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:12px}
+.alloc-leg-item{display:flex;align-items:center;gap:6px;font-size:.78rem}
+.alloc-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.history-empty{text-align:center;padding:60px 20px;color:var(--muted);font-family:'Fraunces',serif;font-size:1rem;font-style:italic}
+.session-card{background:white;border-radius:4px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.session-header{display:flex;align-items:center;gap:20px;padding:18px 24px;border-bottom:1px solid #f0ebe0;cursor:pointer}
+.session-header:hover{background:#faf8f4}
+.session-date{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted)}
+.session-value{font-family:'Fraunces',serif;font-size:1rem}
+.session-status{margin-left:auto;font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:2px}
+.status-pending{background:#fff8e6;color:#a07010;border:1px solid #e0c870}
+.status-applied{background:var(--buy-bg);color:var(--forest);border:1px solid #b0cc90}
+.status-dismissed{background:#f5f5f5;color:#888;border:1px solid #ccc}
+.session-items{padding:0 24px 16px;display:none}
+.session-items.open{display:block}
+.session-summary{display:flex;gap:28px;padding:12px 0;border-bottom:1px solid #f0ebe0;margin-bottom:12px;flex-wrap:wrap}
+.session-sum-item{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted)}
+.session-sum-item strong{color:var(--ink)}
+.session-actions{display:flex;gap:10px;margin-top:14px}
+.plan-form{background:white;border-radius:4px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:24px}
+.plan-form-header{background:var(--ink);color:var(--paper);padding:16px 24px;font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.plan-form-row{display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid #f0ebe0;gap:20px}
+.plan-fund-info{flex:1}
+.plan-fund-name{font-size:.9rem;font-weight:500}
+.plan-fund-class{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:2px}
+.plan-pct-input{width:80px;font-family:'DM Mono',monospace;font-size:.9rem;padding:8px 12px;border:1px solid var(--border);border-radius:2px;background:var(--paper);text-align:right;color:var(--ink)}
+.plan-pct-input:focus{outline:none;border-color:var(--gold);background:white}
+.pct-suffix{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--muted);width:16px}
+.plan-total-row{background:var(--cream);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-top:2px solid var(--border)}
+.plan-total-label{font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.plan-total-value{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:300}
+.plan-total-value.valid{color:var(--forest)}
+.plan-total-value.invalid{color:var(--rose)}
+.validation-msg{font-family:'DM Mono',monospace;font-size:.68rem;margin-top:4px;padding:0 24px 12px;display:none}
+.validation-msg.show{display:block}
+.validation-msg.error{color:var(--rose)}
+.validation-msg.success{color:var(--forest)}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--ink);color:var(--paper);padding:14px 22px;border-radius:3px;font-family:'DM Mono',monospace;font-size:.72rem;letter-spacing:.06em;border-left:3px solid var(--gold);box-shadow:0 4px 24px rgba(0,0,0,.3);transform:translateY(80px);opacity:0;transition:all .3s ease;z-index:1000}
+.toast.show{transform:translateY(0);opacity:1}
+.page{display:none}
+.page.active{display:block}
+.loading{text-align:center;padding:40px;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);letter-spacing:.1em}
+.error-banner{background:var(--sell-bg);border:1px solid #e0a8a8;border-radius:4px;padding:14px 18px;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--rose);margin-bottom:20px}
+@media(max-width:768px){.main{padding:20px}.header{padding:0 20px}.nav{padding:0 20px}.summary-grid{grid-template-columns:repeat(2,1fr)}.client-banner{flex-wrap:wrap}.client-meta{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <div class="header-brand">Wealth<span>Builder</span> 2025</div>
+    <div class="header-sub">Portfolio Rebalancer — Live DB</div>
+  </div>
+  <div class="client-selector">
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:#888;">CLIENT</span>
+    <select class="client-select" id="client-select" onchange="onClientChange()">
+      <option value="">Loading…</option>
+    </select>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="showPage('rebalance',this)">① Rebalance</button>
+  <button class="nav-tab" onclick="showPage('holdings',this)">② Holdings</button>
+  <button class="nav-tab" onclick="showPage('history',this)">③ History</button>
+  <button class="nav-tab" onclick="showPage('plan',this)">④ Edit Plan</button>
+</nav>
+
+<div class="main">
+
+  <div class="client-banner">
+    <div class="client-avatar" id="banner-avatar">A</div>
+    <div>
+      <div class="client-name" id="banner-name">Loading…</div>
+      <div class="client-plan">Wealth Builder 2025 — Model Portfolio</div>
+    </div>
+    <div class="client-meta">
+      <div class="client-value-label">Total Portfolio Value</div>
+      <div class="client-value" id="banner-value">—</div>
+    </div>
+  </div>
+
+  <!-- PAGE 1: REBALANCE -->
+  <div class="page active" id="page-rebalance">
+    <div id="rebalance-content"><div class="loading">LOADING REBALANCE DATA…</div></div>
+  </div>
+
+  <!-- PAGE 2: HOLDINGS -->
+  <div class="page" id="page-holdings">
+    <div id="holdings-content"><div class="loading">LOADING HOLDINGS…</div></div>
+  </div>
+
+  <!-- PAGE 3: HISTORY -->
+  <div class="page" id="page-history">
+    <div class="section-title">Rebalancing History</div>
+    <div id="history-content"><div class="loading">LOADING HISTORY…</div></div>
+  </div>
+
+  <!-- PAGE 4: EDIT PLAN -->
+  <div class="page" id="page-plan">
+    <div class="section-title">Edit Model Portfolio Allocations</div>
+    <div id="plan-content"><div class="loading">LOADING PLAN…</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let currentClientId = 'C001';
+let currentClientName = 'Amit Sharma';
+let modelFunds = [];
+
+const FUND_COLORS = {
+  F001:'#4a7a28', F002:'#2d5a8e', F003:'#8b3a3a',
+  F004:'#7a5a10', F005:'#c9a84c', F006:'#888888',
+  F007:'#5a3a8e', F008:'#3a7a7a'
+};
+
+// ── API ──
+async function api(path, opts={}) {
+  const r = await fetch(API + path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function get(path) { return api(path); }
+async function post(path, data) {
+  return api(path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+}
+
+// ── FORMAT ──
+function inr(n) {
+  if (n === null || n === undefined) return '—';
+  return '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN');
+}
+function pct(n, d=1) {
+  if (n === null || n === undefined) return '—';
+  return n.toFixed(d) + '%';
+}
+
+// ── INIT ──
+async function init() {
+  try {
+    const clients = await get('/api/clients');
+    const sel = document.getElementById('client-select');
+    sel.innerHTML = clients.map(c =>
+      `<option value="${c.client_id}">${c.client_name}</option>`
+    ).join('');
+    currentClientId = clients[0].client_id;
+    currentClientName = clients[0].client_name;
+    updateBanner(clients[0]);
+    modelFunds = await get('/api/model_funds');
+    await renderRebalance();
+  } catch(e) {
+    document.querySelector('.main').innerHTML =
+      `<div class="error-banner">⚠ Cannot connect to backend server.<br>
+      Run: <code style="background:#fee;padding:2px 6px;border-radius:2px;">python3 server.py</code><br><br>
+      Error: ${e.message}</div>`;
+  }
+}
+
+async function onClientChange() {
+  const sel = document.getElementById('client-select');
+  currentClientId = sel.value;
+  const clients = await get('/api/clients');
+  const client = clients.find(c => c.client_id === currentClientId);
+  currentClientName = client.client_name;
+  updateBanner(client);
+  const activePage = document.querySelector('.page.active').id.replace('page-','');
+  await renderCurrentPage(activePage);
+}
+
+function updateBanner(client) {
+  document.getElementById('banner-name').textContent = client.client_name;
+  document.getElementById('banner-avatar').textContent = client.client_name[0];
+}
+
+function updateBannerValue(val) {
+  document.getElementById('banner-value').textContent = inr(val);
+}
+
+// ── NAVIGATION ──
+function showPage(name, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (tab) tab.classList.add('active');
+  renderCurrentPage(name);
+}
+
+async function renderCurrentPage(name) {
+  if (name === 'rebalance') await renderRebalance();
+  else if (name === 'holdings') await renderHoldings();
+  else if (name === 'history') await renderHistory();
+  else if (name === 'plan') await renderPlanEditor();
+}
+
+// ── REBALANCE ──
+async function renderRebalance() {
+  const el = document.getElementById('rebalance-content');
+  el.innerHTML = '<div class="loading">CALCULATING REBALANCE…</div>';
+  try {
+    const data = await get(`/api/rebalance?client_id=${currentClientId}`);
+    updateBannerValue(data.total_value);
+
+    // Alloc bars
+    const currentSegments = data.rows.map(r => {
+      if (r.current_pct <= 0) return '';
+      const c = FUND_COLORS[r.fund_id] || '#999';
+      return `<div class="alloc-seg" style="width:${r.current_pct}%;background:${c};opacity:.85;"
+        title="${r.fund_name}: ${pct(r.current_pct)}"></div>`;
+    }).join('');
+    const targetSegments = data.rows.filter(r => r.target_pct).map(r => {
+      const c = FUND_COLORS[r.fund_id] || '#999';
+      return `<div class="alloc-seg" style="width:${r.target_pct}%;background:${c};opacity:.85;"
+        title="${r.fund_name}: ${pct(r.target_pct)}"></div>`;
+    }).join('');
+    const legend = data.rows.filter(r=>r.current_pct>0||r.target_pct).map(r => {
+      const c = FUND_COLORS[r.fund_id]||'#999';
+      const shortName = r.fund_name.split(' ').slice(0,3).join(' ');
+      return `<div class="alloc-leg-item">
+        <div class="alloc-leg-dot" style="background:${c}"></div>
+        <span>${shortName}</span>
+      </div>`;
+    }).join('');
+
+    // Table rows
+    const tableRows = data.rows.map(r => {
+      let badge, amtClass;
+      if (r.action==='BUY') { badge=`<span class="action-badge badge-buy">▲ BUY</span>`; amtClass='buy'; }
+      else if (r.action==='SELL') { badge=`<span class="action-badge badge-sell">▼ SELL</span>`; amtClass='sell'; }
+      else if (r.action==='REVIEW') { badge=`<span class="action-badge badge-review">⚑ REVIEW</span>`; amtClass='review'; }
+      else { badge=`<span class="action-badge badge-hold">● HOLD</span>`; amtClass=''; }
+
+      const driftHtml = r.drift !== null
+        ? `<span class="drift ${r.drift>0?'pos':'neg'}">${r.drift>0?'+':''}${r.drift.toFixed(1)}%</span>`
+        : `<span style="color:var(--muted)">—</span>`;
+      const targetHtml = r.target_pct !== null
+        ? `<span class="pct">${r.target_pct.toFixed(1)}%</span>`
+        : `<span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:.78rem">Not in plan</span>`;
+      const reviewNote = !r.is_model_fund
+        ? `<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:#7a5a10;margin-top:4px;">⚠ Outside model portfolio — needs review</div>` : '';
+      const amtDisplay = r.action==='HOLD' ? '—' : inr(r.amount);
+
+      return `<tr>
+        <td>
+          <div class="fund-name">${r.fund_name}</div>
+          <div class="fund-class">${r.asset_class}</div>${reviewNote}
+        </td>
+        <td>${targetHtml}</td>
+        <td><span class="pct">${pct(r.current_pct)}</span></td>
+        <td>${driftHtml}</td>
+        <td>${badge}</td>
+        <td><span class="amount ${amtClass}">${amtDisplay}</span></td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="section-title">Allocation Visual</div>
+      <div class="alloc-visual">
+        <div class="alloc-title">Current vs Target Allocation</div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);margin-bottom:5px;">CURRENT</div>
+            <div class="alloc-bar">${currentSegments}</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);margin-bottom:5px;">TARGET</div>
+            <div class="alloc-bar">${targetSegments}</div>
+          </div>
+        </div>
+        <div class="alloc-legend">${legend}</div>
+      </div>
+
+      <div class="section-title">Rebalancing Recommendations</div>
+      <table class="rebalance-table">
+        <thead>
+          <tr>
+            <th>Fund</th><th>Plan %</th><th>Today %</th>
+            <th>Drift</th><th>Action</th><th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+
+      <div class="summary-grid">
+        <div class="summary-card buy-card">
+          <div class="summary-label">Total to Buy</div>
+          <div class="summary-value buy">${inr(data.total_buy)}</div>
+        </div>
+        <div class="summary-card sell-card">
+          <div class="summary-label">Total to Sell</div>
+          <div class="summary-value sell">${inr(data.total_sell)}</div>
+        </div>
+        <div class="summary-card cash-card">
+          <div class="summary-label">Fresh Cash Needed</div>
+          <div class="summary-value cash">${inr(data.cash_needed)}</div>
+        </div>
+        <div class="summary-card total-card">
+          <div class="summary-label">Portfolio Value</div>
+          <div class="summary-value">${inr(data.total_value)}</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="showToast('Recommendation dismissed — no changes saved')">Dismiss</button>
+        <button class="btn btn-gold" onclick="saveRebalance()">Save Rebalancing ↓</button>
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div class="error-banner">Error: ${e.message}</div>`;
+  }
+}
+
+// ── HOLDINGS ──
+async function renderHoldings() {
+  const el = document.getElementById('holdings-content');
+  el.innerHTML = '<div class="loading">LOADING HOLDINGS…</div>';
+  try {
+    const [holdings, mf] = await Promise.all([
+      get(`/api/holdings?client_id=${currentClientId}`),
+      get('/api/model_funds')
+    ]);
+    const modelIds = new Set(mf.map(f=>f.fund_id));
+    const acMap = {}; mf.forEach(f=>acMap[f.fund_id]=f.asset_class);
+    const total = holdings.reduce((s,h)=>s+h.current_value,0);
+    updateBannerValue(total);
+
+    const rows = holdings.map(h => {
+      const p = total>0 ? h.current_value/total*100 : 0;
+      const color = FUND_COLORS[h.fund_id]||'#999';
+      const notInPlan = !modelIds.has(h.fund_id)
+        ? '<span class="not-in-plan">Not in plan</span>' : '';
+      return `<tr>
+        <td><span class="fund-name">${h.fund_name}</span>${notInPlan}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${acMap[h.fund_id]||'—'}</td>
+        <td style="font-family:'Fraunces',serif;font-size:.98rem;">${inr(h.current_value)}</td>
+        <td style="font-family:'DM Mono',monospace;">${pct(p)}</td>
+        <td style="width:160px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.7rem;">${pct(p)}</div>
+          <div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(p,100)}%;background:${color}"></div></div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="section-title">Current Holdings</div>
+      <table class="holdings-table">
+        <thead>
+          <tr><th>Fund</th><th>Asset Class</th><th>Current Value</th><th>% of Portfolio</th><th>Allocation</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="2">Total Portfolio</td>
+            <td>${inr(total)}</td>
+            <td>100%</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>`;
+  } catch(e) {
+    el.innerHTML = `<div class="error-banner">Error: ${e.message}</div>`;
+  }
+}
+
+// ── HISTORY ──
+async function renderHistory() {
+  const el = document.getElementById('history-content');
+  el.innerHTML = '<div class="loading">LOADING HISTORY…</div>';
+  try {
+    const sessions = await get(`/api/sessions?client_id=${currentClientId}`);
+    if (!sessions.length) {
+      el.innerHTML = `<div class="history-empty">No rebalancing sessions saved yet.<br>
+        Run a rebalance and click <em>Save</em> to record it here.</div>`;
+      return;
+    }
+    el.innerHTML = sessions.map(s => {
+      const scls = {PENDING:'status-pending',APPLIED:'status-applied',DISMISSED:'status-dismissed'}[s.status];
+      const itemRows = s.items.map(it => {
+        let badge;
+        if(it.action==='BUY') badge=`<span class="action-badge badge-buy">▲ BUY</span>`;
+        else if(it.action==='SELL') badge=`<span class="action-badge badge-sell">▼ SELL</span>`;
+        else badge=`<span class="action-badge badge-review">⚑ REVIEW</span>`;
+        return `<tr>
+          <td><div class="fund-name" style="font-size:.85rem;">${it.fund_name}</div></td>
+          <td>${badge}</td>
+          <td><span class="amount ${it.action.toLowerCase()}" style="font-family:'DM Mono',monospace;">${it.amount>0?inr(it.amount):'—'}</span></td>
+          <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${it.current_pct!==null?it.current_pct.toFixed(1)+'%':'—'}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${it.target_pct!==null?it.target_pct.toFixed(1)+'%':'—'}</td>
+        </tr>`;
+      }).join('');
+      const actionBtns = s.status==='PENDING' ? `
+        <div class="session-actions">
+          <button class="btn btn-secondary" onclick="updateSession(${s.session_id},'DISMISSED')">Dismiss</button>
+          <button class="btn btn-primary" onclick="updateSession(${s.session_id},'APPLIED')">Mark as Applied</button>
+        </div>` : '';
+      return `<div class="session-card">
+        <div class="session-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div>
+            <div class="session-date">${s.created_at}</div>
+            <div class="session-value">${inr(s.portfolio_value)}</div>
+          </div>
+          <span class="session-status ${scls}">${s.status}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--muted);margin-left:8px;">▾</span>
+        </div>
+        <div class="session-items">
+          <div class="session-summary">
+            <div class="session-sum-item">Buy: <strong>${inr(s.total_to_buy)}</strong></div>
+            <div class="session-sum-item">Sell: <strong>${inr(s.total_to_sell)}</strong></div>
+            <div class="session-sum-item">Fresh cash: <strong>${inr(s.net_cash_needed)}</strong></div>
+          </div>
+          <table class="rebalance-table">
+            <thead><tr><th>Fund</th><th>Action</th><th>Amount</th><th>Then %</th><th>Plan %</th></tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+          ${actionBtns}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="error-banner">Error: ${e.message}</div>`;
+  }
+}
+
+async function updateSession(sessionId, status) {
+  try {
+    await post('/api/update_session', {session_id: sessionId, status});
+    showToast(`Session marked as ${status.toLowerCase()}`);
+    await renderHistory();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ── PLAN EDITOR ──
+async function renderPlanEditor() {
+  const el = document.getElementById('plan-content');
+  el.innerHTML = '<div class="loading">LOADING PLAN…</div>';
+  try {
+    const funds = await get('/api/model_funds');
+    modelFunds = funds;
+    const rows = funds.map(f => `
+      <div class="plan-form-row">
+        <div class="plan-fund-info">
+          <div class="plan-fund-name">${f.fund_name}</div>
+          <div class="plan-fund-class">${f.asset_class} · ${f.fund_id}</div>
+        </div>
+        <input class="plan-pct-input" type="number" min="0" max="100" step="0.1"
+          value="${f.allocation_pct}" data-fund-id="${f.fund_id}" oninput="updatePlanTotal()">
+        <span class="pct-suffix">%</span>
+      </div>`).join('');
+
+    el.innerHTML = `
+      <div class="plan-form">
+        <div class="plan-form-header">
+          <span>Wealth Builder 2025 — Target Allocations</span>
+          <span style="color:#888;font-size:.62rem;">All 5 funds must sum to exactly 100%</span>
+        </div>
+        ${rows}
+        <div class="validation-msg" id="validation-msg"></div>
+        <div class="plan-total-row">
+          <div class="plan-total-label">Total Allocation</div>
+          <div class="plan-total-value" id="plan-total">0%</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetPlan()">Reset to Original</button>
+        <button class="btn btn-primary" id="save-plan-btn" onclick="savePlan()">Save & Recalculate →</button>
+      </div>`;
+    updatePlanTotal();
+  } catch(e) {
+    el.innerHTML = `<div class="error-banner">Error: ${e.message}</div>`;
+  }
+}
+
+function updatePlanTotal() {
+  const inputs = document.querySelectorAll('.plan-pct-input');
+  let total = 0;
+  inputs.forEach(inp => total += parseFloat(inp.value)||0);
+  const totalEl = document.getElementById('plan-total');
+  const msgEl = document.getElementById('validation-msg');
+  const saveBtn = document.getElementById('save-plan-btn');
+  if (!totalEl) return;
+  totalEl.textContent = total.toFixed(1) + '%';
+  if (Math.abs(total-100) < 0.01) {
+    totalEl.className = 'plan-total-value valid';
+    msgEl.className = 'validation-msg show success';
+    msgEl.textContent = '✓ Allocations sum to exactly 100%';
+    if (saveBtn) saveBtn.disabled = false;
+  } else {
+    totalEl.className = 'plan-total-value invalid';
+    msgEl.className = 'validation-msg show error';
+    msgEl.textContent = `✗ Must sum to 100%. Current: ${total.toFixed(1)}%`;
+    if (saveBtn) saveBtn.disabled = true;
+  }
+}
+
+async function savePlan() {
+  const inputs = document.querySelectorAll('.plan-pct-input');
+  let total = 0;
+  const funds = [];
+  inputs.forEach(inp => {
+    const v = parseFloat(inp.value)||0;
+    total += v;
+    funds.push({fund_id: inp.dataset.fundId, allocation_pct: v});
+  });
+  if (Math.abs(total-100) >= 0.01) { showToast('⚠ Must sum to exactly 100%'); return; }
+  try {
+    await post('/api/update_plan', {funds});
+    modelFunds = await get('/api/model_funds');
+    showToast('✓ Plan saved — rebalance updated');
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function resetPlan() {
+  const orig = {F001:30,F002:25,F003:20,F004:15,F005:10};
+  const inputs = document.querySelectorAll('.plan-pct-input');
+  inputs.forEach(inp => { inp.value = orig[inp.dataset.fundId]||0; });
+  updatePlanTotal();
+  try {
+    const funds = Object.entries(orig).map(([id,p])=>({fund_id:id,allocation_pct:p}));
+    await post('/api/update_plan', {funds});
+    showToast('Plan reset to original allocations');
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ── SAVE REBALANCE ──
+async function saveRebalance() {
+  try {
+    const result = await post('/api/save_rebalance', {client_id: currentClientId});
+    showToast('✓ Rebalancing saved to history (Session #' + result.session_id + ')');
+    setTimeout(() => {
+      showPage('history', document.querySelectorAll('.nav-tab')[2]);
+    }, 700);
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+init();
+</script>
+</body>
+</html>

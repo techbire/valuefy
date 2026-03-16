@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: portfolio-rebalancer
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python server.py
+    envVars:
+      - key: DB_PATH
+        value: /data/model_portfolio.db
+    disks:
+      - name: portfolio-data
+        mountPath: /data
+        sizeGB: 1
