@@ -16,9 +16,13 @@ This app is now ready to host.
 5. Open the service URL once deployment finishes.
 
 ## Important Notes
-- Data persists on the mounted Render disk (`/data/model_portfolio.db`).
+- Current `render.yaml` is configured for **free tier** (no disk support).
+- Free tier uses `/tmp/model_portfolio.db`, so data is **ephemeral** and may reset on redeploy/restart.
 - On first deploy, DB is seeded automatically from the repository DB.
-- On later deploys, existing `/data/model_portfolio.db` is kept.
+
+## If You Need Persistent Data
+- Change service plan to a paid plan (for example, Starter).
+- Add a `disk` block in `render.yaml` and set `DB_PATH` to `/data/model_portfolio.db`.
 
 ## Local Run
 ```bash
